@@ -1,13 +1,64 @@
 import java.io.File
 import java.nio.file.Paths
+import java.util.*
 
-data class Node<T>(var data: T? = null, val neighbors: ArrayList<Node<T>> = ArrayList()) {
+class Node<T>(var data: T,
+              val neighbors: ArrayList<Node<T>> = ArrayList(),
+              private var seen: Int = 0) {
+
+    fun isSeen(n: Int): Boolean {
+        if (seen == n) return true
+        return false
+    }
+
+    fun setSeen(n: Int) {
+        seen = n
+    }
+
     override fun toString(): String {
         val nData = neighbors.map { n -> n.data }
         return "$data->$nData"
     }
 }
-data class Graph<T>(val root: ArrayList<Node<T>> = ArrayList()) {
+
+class Graph<T>(val root: ArrayList<Node<T>> = ArrayList()) {
+    private var seen: Int = 0
+
+    fun findPath(from: T, to: T): List<T> {
+        if (from == to) return listOf()
+
+        val path: Stack<T> = Stack()
+        val queue: Queue<Node<T>> = LinkedList()
+        var fromNode: Node<T>? = null
+        var toFound = false
+        queue += root
+        seen++
+
+        while (!queue.isEmpty()) {
+            val node = queue.remove()
+
+            if (node.data == from) {
+                fromNode = node
+                seen++          // Found start reset seen nodes
+                queue.clear() // Found start so reset search
+            }
+
+            if (fromNode != null) {
+                path.push(node.data)
+                if (node.data == to) {  // Found the end so done
+                    toFound = true
+                    break
+                }
+            }
+
+            node.setSeen(seen)
+            node.neighbors.filterNotTo(queue) { it.isSeen(seen) } // Only add not-seen children to queue
+        }
+
+        if (!toFound) path.clear()
+        return path
+    }
+
     override fun toString(): String {
         val roots = root.map { n -> n.data }
         return "Graph(roots=$roots)"
@@ -16,7 +67,7 @@ data class Graph<T>(val root: ArrayList<Node<T>> = ArrayList()) {
 
 fun main(args: Array<String>) {
     val path = Paths.get("").toAbsolutePath().toString()
-    val reader = File("$path/input_CCIPathFinder.txt")
+    val reader = File("$path/input_CCIPathFinder2.txt")
             .inputStream()
             .bufferedReader()
 
@@ -34,7 +85,7 @@ fun main(args: Array<String>) {
     }
 
     // DEBUG ===========
-    println(graph)
+    println("$graph\n")
     nodes.forEach { _, v -> println(v) }
     nodes.clear() // Just used for building the graph!
     println()
@@ -42,7 +93,7 @@ fun main(args: Array<String>) {
 
     for (i in 0 until tests) {
         val (from, to) = reader.readStringArr()
-        println("FindPath($from, $to): !!TODO!!")
+        println("FindPath($from, $to): " + graph.findPath(from, to))
     }
 
     reader.close()
